@@ -9,6 +9,9 @@ require('dotenv').config();
 const app = express();
 app.use(express.json({ limit: '50mb' })); // Base64 avatar এর জন্য লিমিট বাড়ানো হলো
 
+const cors = require('cors');
+app.use(cors());
+
 const upload = multer({ storage: multer.memoryStorage() });
 
 // --- Hash to Index Method & Multi-DB Setup ---
