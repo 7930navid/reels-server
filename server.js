@@ -110,14 +110,12 @@ app.post('/api/reels', upload.single('video'), async (req, res) => {
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             RETURNING *;
         `;
-        
-        // PostgreSQL-এর jsonb কলামে সরাসরি JavaScript Array পাঠানো যায়, আলাদা করে JSON.stringify করার প্রয়োজন নেই
+
         const values = [id, username, avatar, email, location, feelings, caption, JSON.stringify(parsedTags), vidLink];
 
         const newReel = await pool.query(query, values);
         res.status(201).json({ message: 'Reel posted successfully', reel: newReel.rows[0] });
 
-    } czyn (err) { // এখানে আপনার ক্যাচ ব্লক ঠিক রাখবেন
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: err.message || 'Server error' });
