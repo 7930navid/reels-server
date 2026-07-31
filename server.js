@@ -333,6 +333,32 @@ app.put('/api/reels/user', async (req, res) => {
     }
 });
 
+
+// h) Fetch a single reel by its ID (Searches across all PostgreSQL databases)
+app.get('/api/reels/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        let foundReel = null;
+
+        for (let pool of pools) {
+            const result = await pool.query('SELECT * FROM reels WHERE id = $1', [id]);
+            if (result.rows.length > 0) {
+                foundReel = result.rows[0];
+                break;
+            }
+        }
+
+        if (!foundReel) {
+            return res.status(404).json({ error: 'Reel not found' });
+        }
+
+        res.json(foundReel);
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: 'Server error' });
+    }
+});
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
     console.log(`Server is running smoothly on port ${PORT}`);
