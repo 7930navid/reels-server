@@ -67,16 +67,16 @@ const getPublicIdFromUrl = (url) => {
 // a) Post Reel
 app.post('/api/reels', upload.single('video'), async (req, res) => {
     try {
-        const { username, avatar, email, location, feelings, tags_people } = req.body;
+        const { username, avatar, email, location, feelings, caption, tags_people } = req.body;
         const videoFile = req.file;
 
         if (!videoFile) {
             return res.status(400).json({ error: 'Video file is required' });
         }
 
-        // ১. প্রথমে ক্লাউডিনারি-তে ভিডিও আপলোড করা
+        // ১. ক্লাউডিনারি-তে ভিডিও আপলোড করা
         const cloud = getCloudinaryInstance(email);
-        
+
         const uploadToCloudinary = () => {
             return new Promise((resolve, reject) => {
                 const uploadStream = cloud.uploader.upload_stream(
@@ -93,26 +93,38 @@ app.post('/api/reels', upload.single('video'), async (req, res) => {
         const cloudinaryResult = await uploadToCloudinary();
         const vidLink = cloudinaryResult.secure_url;
 
-        // ২. ক্লাউড আপলোড সফল হওয়ার পরে পোস্টগ্রেস ডাটাবেজে সেভ করা
+        // ২. ট্যাগ পার্স করা (ডাবল স্ট্রিংফাই এড়ানোর জন্য শুধু একবার parse করা হলো)
+        let parsedTags = [];
+        try {
+            parsedTags = typeof tags_people === 'string' ? JSON.parse(tags_people) : (tags_people || []);
+        } catch (e) {
+            parsedTags = [];
+        }
+
+        // ৩. পোস্টগ্রেস ডাটাবেজে সেভ করা
         const pool = getPool(email);
         const id = uuidv4();
-        const parsedTags = typeof tags_people === 'string' ? JSON.parse(tags_people || '[]') : tags_people;
 
         const query = `
-            INSERT INTO reels (id, username, avatar, email, location, feelings, tags_people, vid)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            INSERT INTO reels (id, username, avatar, email, location, feelings, caption, tags_people, vid)
+            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
             RETURNING *;
         `;
-        const values = [id, username, avatar, email, location, feelings, JSON.stringify(parsedTags), vidLink];
         
+        // PostgreSQL-এর jsonb কলামে সরাসরি JavaScript Array পাঠানো যায়, আলাদা করে JSON.stringify করার প্রয়োজন নেই
+        const values = [id, username, avatar, email, location, feelings, caption, JSON.stringify(parsedTags), vidLink];
+
         const newReel = await pool.query(query, values);
         res.status(201).json({ message: 'Reel posted successfully', reel: newReel.rows[0] });
 
+    } czyn (err) { // এখানে আপনার ক্যাচ ব্লক ঠিক রাখবেন
     } catch (err) {
         console.error(err);
         res.status(500).json({ error: err.message || 'Server error' });
     }
 });
+
+
 
 // b) Delete Reel (First Cloudinary -> Then PostgreSQL)
 app.delete('/api/reels/:id', async (req, res) => {
