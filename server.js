@@ -359,6 +359,13 @@ app.get('/api/reels/:id', async (req, res) => {
     }
 });
 
+
+/* ============ PING ROUTE ==============*/
+app.get("/get/:name", (req, res) => {
+    res.send(`${req.params.name} server has been pinged`);
+});
+
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
     console.log(`Server is running smoothly on port ${PORT}`);
